@@ -29,8 +29,8 @@ class Nfq {
   void dec_pktnum() { if (pktnum > 0) pktnum--; }
   int  get_pktnum() { return pktnum; }
   int  get_fd()     { return nfq_fd(h); }
-  int init(unsigned short int queue_id,
-           unsigned int nfq_mode, unsigned int range);
+  int  init(unsigned short int queue_id,
+            unsigned int nfq_mode, unsigned int range);
   void handle(char *buf, int rv) { nfq_handle_packet(h, buf, rv); }
-  int exit();
+  int  exit();
 };
