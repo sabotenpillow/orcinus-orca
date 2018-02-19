@@ -11,9 +11,11 @@
 //#include <linux/if_ether.h>
 #include <iomanip>
 #include <ncurses.h>
+#include <boost/thread.hpp>
 #include "nfq.hpp"
 
 #define QUEUE_ID 10
+#define BUF_SIZE 0x10000
 #define HexFormat(wd, fill) std::hex<<std::setw(wd)<<std::setfill(fill)
 
 using std::cin;
@@ -31,6 +33,38 @@ using std::endl;
 //   }
 // };
 
+static void printhex(const char *buf, int len);
+int nfq_thread(Nfq *nfq);
+
+volatile bool thread_loop = true;
+
+int main(void) {
+  Nfq *nfq = new Nfq;
+  int x, y;
+
+  system(("iptables -t raw -A PREROUTING -j NFQUEUE --queue-num "
+    + std::to_string(QUEUE_ID) + " -i eth1").c_str());
+  system(("iptables -t raw -A OUTPUT -j NFQUEUE --queue-num "
+    + std::to_string(QUEUE_ID) + " -s 192.168.67.10").c_str());
+
+  if ( nfq->init(QUEUE_ID, NFQNL_COPY_PACKET, sizeof(char)*BUF_SIZE) < 0 )
+    return -1;
+  boost::thread nfqthread(nfq_thread, nfq);
+
+  initscr();
+  getmaxyx(stdscr, y, x);
+
+  nfqthread.join();
+
+  endwin();
+
+  //nfqthread.interrupt();
+  if ( nfq->exit() < 0 )
+    return -1;
+
+  system("iptables -t raw -F");
+}
+
 static void printhex(const char *buf, int len) {
   int i;
   for (i = 0; i < len; i++) {
@@ -41,31 +75,13 @@ static void printhex(const char *buf, int len) {
   cout<<std::dec;
 }
 
-int main(void) {
-  Nfq *nfq = new Nfq;
-  int fd;
-  int rv;
-  char buf[0x10000];
-  int x, y;
+int nfq_thread(Nfq *nfq) {
+  int fd, rv;
+  char buf[BUF_SIZE];
 
-  system(("iptables -t raw -A PREROUTING -j NFQUEUE --queue-num "
-    + std::to_string(QUEUE_ID) + " -i eth1").c_str());
-  system(("iptables -t raw -A OUTPUT -j NFQUEUE --queue-num "
-    + std::to_string(QUEUE_ID) + " -s 192.168.67.10").c_str());
-
-  if ( nfq->init(QUEUE_ID, NFQNL_COPY_PACKET, sizeof(buf)) < 0 )
-    return -1;
   fd = nfq->get_fd();
-
-  initscr();
-  getmaxyx(stdscr, y, x);
   while ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0) {
     nfq->handle(buf, rv);
   }
-
-  endwin();
-  if ( nfq->exit() < 0 )
-    return -1;
-
-  system("iptables -t raw -F");
+  return 0;
 }
