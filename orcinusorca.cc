@@ -40,8 +40,8 @@ int main(void) {
   boost::thread nfqthread(nfq_thread, nfq);
 
   initscr();
-  Ncurses::init();
   Ncurses::updateyx();
+  refresh();
 
   nfqthread.join();
 

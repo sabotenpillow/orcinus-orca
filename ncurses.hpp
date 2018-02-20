@@ -9,7 +9,6 @@ class Ncurses {
   static unsigned int listtop;
   static int max_y, max_x;
  public:
-  static void init() { listtop = 0; };
   static void updateyx() { getmaxyx(stdscr, max_y, max_x); };
   static void listupdate(Nfq *nfq);
 };
