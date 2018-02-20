@@ -6,8 +6,9 @@ int Ncurses::max_x = -1;
 
 void Ncurses::listupdate(Nfq *nfq)
 {
-  for ( int i = listtop, y = 0, pktnum = nfq->get_pktnum();
-        y < max_y && y < pktnum; i++, y++ ) {
+  int pktnum = nfq->get_pktnum();
+  if ( pktnum > max_y ) return;
+  for ( int i=listtop, y=0; y < max_y && y < pktnum; i++, y++ ) {
     mvprintw(y, 0, nfq->get_pktdata(i).about.c_str());
   }
   refresh();
