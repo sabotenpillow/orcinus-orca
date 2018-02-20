@@ -27,7 +27,7 @@ class Nfq {
   };
   std::vector<struct listElem> pktlist;
   static int cb(struct nfq_q_handle *qh, struct nfgenmsg *msg,
-                struct nfq_data *nfdata, void *data);
+                struct nfq_data *nfdata, void *nfq_instance);
  public:
   void inc_pktnum() { pktnum++; }
   void dec_pktnum() { if (pktnum > 0) pktnum--; }
@@ -38,4 +38,5 @@ class Nfq {
   void handle(char *buf, int rv) { nfq_handle_packet(h, buf, rv); }
   int  exit();
   void inspkt(struct nfq_data *nfd, std::string about);
+  struct listElem get_pktdata(int i) { return pktlist[i]; }
 };

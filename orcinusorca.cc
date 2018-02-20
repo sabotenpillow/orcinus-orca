@@ -13,6 +13,7 @@
 #include <ncurses.h>
 #include <boost/thread.hpp>
 #include "nfq.hpp"
+#include "ncurses.hpp"
 
 #define QUEUE_ID 10
 #define BUF_SIZE 0x10000
@@ -23,24 +24,11 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-// class Ncurses {
-//  private:
-//   const unsigned int max_y;
-//   const unsigned int max_x;
-//   unsigned int listtop_index;
-//  public:
-//   static void operater() {
-//   }
-// };
-
 static void printhex(const char *buf, int len);
 int nfq_thread(Nfq *nfq);
 
-volatile bool thread_loop = true;
-
 int main(void) {
   Nfq *nfq = new Nfq;
-  int x, y;
 
   system(("iptables -t raw -A PREROUTING -j NFQUEUE --queue-num "
     + std::to_string(QUEUE_ID) + " -i eth1").c_str());
@@ -52,7 +40,8 @@ int main(void) {
   boost::thread nfqthread(nfq_thread, nfq);
 
   initscr();
-  getmaxyx(stdscr, y, x);
+  Ncurses::init();
+  Ncurses::updateyx();
 
   nfqthread.join();
 
@@ -82,6 +71,7 @@ int nfq_thread(Nfq *nfq) {
   fd = nfq->get_fd();
   while ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0) {
     nfq->handle(buf, rv);
+    Ncurses::listupdate(nfq);
   }
   return 0;
 }

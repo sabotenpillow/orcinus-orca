@@ -37,10 +37,6 @@ int Nfq::cb(struct nfq_q_handle *qh, struct nfgenmsg *msg,
     } break;
   default: break;
   }
-  //static int i = 0;
-  //mvprintw(i, 0, disp_line.str().c_str());
-  //refresh();
-  //i++;
   //printhex(payload, len);
   ((Nfq *)nfq_instance)->inspkt(nfdata, disp_line.str());
   ((Nfq *)nfq_instance)->inc_pktnum();
