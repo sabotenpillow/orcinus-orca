@@ -4,7 +4,7 @@ using std::cerr;
 using std::endl;
 
 int Nfq::cb(struct nfq_q_handle *qh, struct nfgenmsg *msg,
-            struct nfq_data *nfdata, void *data)
+            struct nfq_data *nfdata, void *nfq_instance)
 {
   struct nfqnl_msg_packet_hdr *header;
   char *payload;
@@ -37,11 +37,13 @@ int Nfq::cb(struct nfq_q_handle *qh, struct nfgenmsg *msg,
     } break;
   default: break;
   }
-  static int i = 0;
-  mvprintw(i, 0, disp_line.str().c_str());
-  refresh();
-  i++;
+  //static int i = 0;
+  //mvprintw(i, 0, disp_line.str().c_str());
+  //refresh();
+  //i++;
   //printhex(payload, len);
+  ((Nfq *)nfq_instance)->inspkt(nfdata, disp_line.str());
+  ((Nfq *)nfq_instance)->inc_pktnum();
 
   return nfq_set_verdict(qh, ntohl(header->packet_id), NF_ACCEPT, 0, NULL);
 }
@@ -59,7 +61,7 @@ int Nfq::init(unsigned short int queue_id,
   if ( nfq_bind_pf(h, AF_INET) < 0 ) {
     cerr << "error during nfq_bind_pf()" << endl;
     return -1;}
-  if ( !(qh = nfq_create_queue(h, queue_id, &cb, NULL)) ) {
+  if ( !(qh = nfq_create_queue(h, queue_id, &cb, this)) ) {
     cerr << "error during nfq_create_queue()" << endl;
     return -1;}
   if ( nfq_set_mode(qh, nfq_mode, range) < 0 ) {
@@ -75,4 +77,9 @@ int Nfq::exit()
     return -1;}
   nfq_close(h);
   return 0;
+}
+
+void Nfq::inspkt(struct nfq_data *nfd, std::string about) {
+  struct listElem e = {nfd, about};
+  this->pktlist.push_back(e);
 }
