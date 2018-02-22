@@ -26,8 +26,8 @@ int Nfq::cb(struct nfq_q_handle *qh, struct nfgenmsg *msg,
               + (iph->ihl<<2) + (tcph->doff<<2)).substr(0, datasize);
       disp_line << " TCP ";
       disp_line << ntohs(tcph->source) << "->"
-                << ntohs(tcph->dest) <<endl;
-      disp_line << buf;
+                << ntohs(tcph->dest);
+      //disp_line << buf;
     } break;
   case IPPROTO_UDP: {
       disp_line << " UDP ";

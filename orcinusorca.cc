@@ -10,7 +10,7 @@
 //#include <arpa/inet.h>
 //#include <linux/if_ether.h>
 #include <iomanip>
-#include <ncurses.h>
+//#include <ncurses.h>
 #include <boost/thread.hpp>
 #include "nfq.hpp"
 #include "ncurses.hpp"
@@ -25,10 +25,11 @@ using std::cerr;
 using std::endl;
 
 static void printhex(const char *buf, int len);
-int nfq_thread(Nfq *nfq);
+int nfq_thread(Nfq *nfq, Ncurses *ncs);
 
 int main(void) {
   Nfq *nfq = new Nfq;
+  Ncurses *ncs = new Ncurses;
 
   system(("iptables -t raw -A PREROUTING -j NFQUEUE --queue-num "
     + std::to_string(QUEUE_ID) + " -i eth1").c_str());
@@ -37,17 +38,17 @@ int main(void) {
 
   if ( nfq->init(QUEUE_ID, NFQNL_COPY_PACKET, sizeof(char)*BUF_SIZE) < 0 )
     return -1;
-  boost::thread nfqthread(nfq_thread, nfq);
+  boost::thread nfqthread(nfq_thread, nfq, ncs);
 
-  initscr();
-  Ncurses::updateyx();
-  refresh();
+  Ncurses::init();
 
-  nfqthread.join();
+  while (1) {
+    if ( ncs->keyinput(getch(), nfq) < 0 ) break;
+  }
 
-  endwin();
+  nfqthread.interrupt();
+  Ncurses::exit();
 
-  //nfqthread.interrupt();
   if ( nfq->exit() < 0 )
     return -1;
 
@@ -64,14 +65,14 @@ static void printhex(const char *buf, int len) {
   cout<<std::dec;
 }
 
-int nfq_thread(Nfq *nfq) {
+int nfq_thread(Nfq *nfq, Ncurses *ncs) {
   int fd, rv;
   char buf[BUF_SIZE];
 
   fd = nfq->get_fd();
   while ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0) {
     nfq->handle(buf, rv);
-    Ncurses::listupdate(nfq);
+    ncs->printlist(nfq);
   }
   return 0;
 }
